@@ -327,8 +327,8 @@ with quick_col2:
     if st.button(f"只看缺口 ({gap_tables})"):
         st.session_state["quick_filter"] = ["待上線(缺口)"]
 with quick_col3:
-    if st.button(f"只看已上線 ({online_tables})"):
-        st.session_state["quick_filter"] = ["已上線"]
+    if st.button(f"只看已上線 ({online_tables + replaced_count})"):
+        st.session_state["quick_filter"] = ["已上線", "已由替代表覆蓋"]
 with quick_col4:
     if st.button("顯示全部"):
         st.session_state["quick_filter"] = df_merged["狀態"].unique().tolist()
