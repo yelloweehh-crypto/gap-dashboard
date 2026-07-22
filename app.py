@@ -167,7 +167,7 @@ plot_layout = dict(
 
 # --- 儀表板 KPI ---
 st.markdown("---")
-col0, col1, col2, col3, col4, col5, col6 = st.columns(7)
+col0, col1, col2, col3, col4, col5 = st.columns(6)
 
 total_sjobs = df_merged["Sjob_Name"].nunique()
 total_tables = df_merged["Table_name"].nunique()
@@ -179,16 +179,14 @@ not_registered = df_merged[df_merged["狀態"] == "未登錄在來源範圍"]["T
 
 col0.metric("多檔彙整排程總數", total_sjobs)
 col1.metric("目標來源總數 (不重複)", total_tables)
-col2.metric("已上線", online_tables)
-col3.metric("已由替代表覆蓋", replaced_count)
-col4.metric("待上線(缺口)", gap_tables, delta=f"-{gap_tables}" if gap_tables > 0 else "0")
-col5.metric("不上雲", no_cloud)
-col6.metric("未登錄", not_registered)
+col2.metric("已上線", online_tables + replaced_count)
+col3.metric("待上線(缺口)", gap_tables, delta=f"-{gap_tables}" if gap_tables > 0 else "0")
+col4.metric("不上雲", no_cloud)
+col5.metric("未登錄", not_registered)
 
-covered_tables = online_tables + replaced_count
-online_rate = covered_tables / total_tables * 100 if total_tables > 0 else 0
+online_rate = (online_tables + replaced_count) / total_tables * 100 if total_tables > 0 else 0
 st.progress(online_rate / 100)
-st.caption(f"有效覆蓋率 (已上線 + 替代表覆蓋): {online_rate:.1f}%  |  純上線率: {online_tables / total_tables * 100:.1f}%")
+st.caption(f"上線完成率: {online_rate:.1f}%（含替代表已覆蓋）")
 
 # --- 各子公司上線進度 ---
 st.markdown("---")
