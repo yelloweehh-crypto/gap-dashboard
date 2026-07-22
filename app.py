@@ -188,6 +188,31 @@ online_rate = (online_tables + replaced_count) / total_tables * 100 if total_tab
 st.progress(online_rate / 100)
 st.caption(f"上線完成率: {online_rate:.1f}%（含替代表已覆蓋）")
 
+# --- KPI 明細展開 ---
+with st.expander("📋 點擊查看各指標明細"):
+    kpi_tab1, kpi_tab2, kpi_tab3, kpi_tab4, kpi_tab5 = st.tabs([
+        f"多檔彙整排程 ({total_sjobs})",
+        f"已上線 ({online_tables + replaced_count})",
+        f"待上線-缺口 ({gap_tables})",
+        f"不上雲 ({no_cloud})",
+        f"未登錄 ({not_registered})",
+    ])
+    with kpi_tab1:
+        sjob_list_detail = df_merged[["Sjob_Name"]].drop_duplicates().sort_values("Sjob_Name").reset_index(drop=True)
+        st.dataframe(sjob_list_detail, use_container_width=True, height=300)
+    with kpi_tab2:
+        online_detail = df_merged[df_merged["狀態"].isin(["已上線", "已由替代表覆蓋"])][["Table_name", "來方子公司", "狀態", "替代表"]].drop_duplicates(subset="Table_name").sort_values("Table_name").reset_index(drop=True)
+        st.dataframe(online_detail, use_container_width=True, height=300)
+    with kpi_tab3:
+        gap_detail_kpi = df_merged[df_merged["狀態"] == "待上線(缺口)"][["Table_name", "來方子公司", "Sjob_Name", "來源備註"]].drop_duplicates(subset="Table_name").sort_values("Table_name").reset_index(drop=True)
+        st.dataframe(gap_detail_kpi, use_container_width=True, height=300)
+    with kpi_tab4:
+        nocloud_detail = df_merged[df_merged["狀態"] == "不上雲"][["Table_name", "來方子公司", "來源備註"]].drop_duplicates(subset="Table_name").sort_values("Table_name").reset_index(drop=True)
+        st.dataframe(nocloud_detail, use_container_width=True, height=300)
+    with kpi_tab5:
+        unreg_detail = df_merged[df_merged["狀態"] == "未登錄在來源範圍"][["Table_name", "Sjob_Name", "Multi_SRC_TBL"]].drop_duplicates(subset="Table_name").sort_values("Table_name").reset_index(drop=True)
+        st.dataframe(unreg_detail, use_container_width=True, height=300)
+
 # --- 各子公司上線進度 ---
 st.markdown("---")
 st.subheader("各子公司上線進度")
