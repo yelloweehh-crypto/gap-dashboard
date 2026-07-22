@@ -59,6 +59,7 @@ st.title("多檔彙整上線進度 - 缺口分析儀表板")
 SHEET_ID = "1ssBq9Vx47MjMipfxhlTL90mTriVMHT09"
 GID_TARGET = "34105576"
 GID_SOURCE = "1680458528"
+GID_REPLACE = "1998321960"
 
 def build_gsheet_url(sheet_id, gid):
     return f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
@@ -75,18 +76,28 @@ def load_data():
     df_source.columns = ["No", "DataBaseName", "TableName", "屬性", "來方子公司",
                          "Query_count", "是否要上雲", "是否已上線", "備註"]
 
-    return df_target, df_source
+    url_replace = build_gsheet_url(SHEET_ID, GID_REPLACE)
+    df_replace = pd.read_csv(url_replace)
+    df_replace.columns = ["原始TableName", "替代表名稱", "替代表是否已上線", "依源子公司", "備註"]
+    df_replace["原始TableName_clean"] = df_replace["原始TableName"].astype(str).str.strip().str.upper()
+    df_replace["替代表名稱_clean"] = df_replace["替代表名稱"].astype(str).str.strip().str.upper()
+
+    return df_target, df_source, df_replace
 
 if st.button("重新讀取 Google Sheet 最新資料"):
     st.cache_data.clear()
     st.rerun()
 
 try:
-    df_target, df_source = load_data()
+    df_target, df_source, df_replace = load_data()
 except Exception as e:
     st.error(f"讀取 Google Sheet 失敗: {e}")
     st.info("請確認 Google Sheet 已設定為「知道連結的人可以檢視」")
     st.stop()
+
+# --- 建立替代表查詢集合 ---
+replace_online = df_replace[df_replace["替代表是否已上線"].astype(str).str.strip() == "V"]
+replaced_tables = set(replace_online["原始TableName_clean"].unique())
 
 # --- 建立比對 ---
 df_source["TableName_clean"] = df_source["TableName"].astype(str).str.replace(".csv", "", regex=False).str.replace(".txt", "", regex=False).str.strip().str.upper()
@@ -116,21 +127,32 @@ df_merged = pd.DataFrame(records)
 
 def classify_status(row):
     if row["是否要上雲"] == "X":
+        if row["Table_name"] in replaced_tables:
+            return "已由替代表覆蓋"
         return "不上雲"
     elif row["是否已上線"] == "V":
         return "已上線"
     elif row["是否要上雲"] == "V":
         return "待上線(缺口)"
     elif row["是否要上雲"] == "未登錄":
+        if row["Table_name"] in replaced_tables:
+            return "已由替代表覆蓋"
         return "未登錄在來源範圍"
     else:
         return "待確認"
 
 df_merged["狀態"] = df_merged.apply(classify_status, axis=1)
 
+# --- 替代表對應資訊 ---
+replace_lookup = df_replace.groupby("原始TableName_clean").apply(
+    lambda g: ", ".join(g["替代表名稱"].astype(str).tolist())
+).to_dict()
+df_merged["替代表"] = df_merged["Table_name"].map(replace_lookup).fillna("")
+
 # --- 深色主題配色 ---
 color_map = {
     "已上線": "#738488",
+    "已由替代表覆蓋": "#5B9279",
     "待上線(缺口)": "#A6B6BA",
     "不上雲": "#D0D8DA",
     "未登錄在來源範圍": "#E1DDD7",
@@ -145,11 +167,12 @@ plot_layout = dict(
 
 # --- 儀表板 KPI ---
 st.markdown("---")
-col0, col1, col2, col3, col4, col5 = st.columns(6)
+col0, col1, col2, col3, col4, col5, col6 = st.columns(7)
 
 total_sjobs = df_merged["Sjob_Name"].nunique()
 total_tables = df_merged["Table_name"].nunique()
 online_tables = df_merged[df_merged["狀態"] == "已上線"]["Table_name"].nunique()
+replaced_count = df_merged[df_merged["狀態"] == "已由替代表覆蓋"]["Table_name"].nunique()
 gap_tables = df_merged[df_merged["狀態"] == "待上線(缺口)"]["Table_name"].nunique()
 no_cloud = df_merged[df_merged["狀態"] == "不上雲"]["Table_name"].nunique()
 not_registered = df_merged[df_merged["狀態"] == "未登錄在來源範圍"]["Table_name"].nunique()
@@ -157,20 +180,25 @@ not_registered = df_merged[df_merged["狀態"] == "未登錄在來源範圍"]["T
 col0.metric("多檔彙整排程總數", total_sjobs)
 col1.metric("目標來源總數 (不重複)", total_tables)
 col2.metric("已上線", online_tables)
-col3.metric("待上線(缺口)", gap_tables, delta=f"-{gap_tables}" if gap_tables > 0 else "0")
-col4.metric("不上雲", no_cloud)
-col5.metric("未登錄", not_registered)
+col3.metric("已由替代表覆蓋", replaced_count)
+col4.metric("待上線(缺口)", gap_tables, delta=f"-{gap_tables}" if gap_tables > 0 else "0")
+col5.metric("不上雲", no_cloud)
+col6.metric("未登錄", not_registered)
 
-online_rate = online_tables / total_tables * 100 if total_tables > 0 else 0
+covered_tables = online_tables + replaced_count
+online_rate = covered_tables / total_tables * 100 if total_tables > 0 else 0
 st.progress(online_rate / 100)
-st.caption(f"上線完成率: {online_rate:.1f}%")
+st.caption(f"有效覆蓋率 (已上線 + 替代表覆蓋): {online_rate:.1f}%  |  純上線率: {online_tables / total_tables * 100:.1f}%")
 
 # --- 各子公司上線進度 ---
 st.markdown("---")
 st.subheader("各子公司上線進度")
 
 def classify_source_status(row):
+    table_clean = str(row.get("TableName_clean", "")).strip().upper()
     if row["是否要上雲"] == "X":
+        if table_clean in replaced_tables:
+            return "已由替代表覆蓋"
         return "不上雲"
     elif row["是否已上線"] == "V":
         return "已上線"
@@ -237,6 +265,7 @@ if selected_detail_sjob != "-- 請選擇 --":
     def color_status(val):
         colors = {
             "已上線": "background-color: #738488; color: #ffffff",
+            "已由替代表覆蓋": "background-color: #5B9279; color: #ffffff",
             "待上線(缺口)": "background-color: #A6B6BA; color: #000000",
             "不上雲": "background-color: #D0D8DA; color: #000000",
             "未登錄在來源範圍": "background-color: #E1DDD7; color: #000000",
@@ -245,7 +274,7 @@ if selected_detail_sjob != "-- 請選擇 --":
         return colors.get(val, "")
 
     st.markdown("##### 完整來源表清單")
-    styled_df = sjob_data[["Table_name", "Multi_SRC_TBL", "來方資料歸屬", "來方子公司", "狀態", "來源備註"]].style.map(
+    styled_df = sjob_data[["Table_name", "Multi_SRC_TBL", "來方資料歸屬", "來方子公司", "狀態", "替代表", "來源備註"]].style.map(
         color_status, subset=["狀態"]
     )
     st.dataframe(styled_df, use_container_width=True, height=300)
@@ -331,8 +360,31 @@ if selected_source_type != "全部":
     filtered = filtered[filtered["來方資料歸屬"] == selected_source_type]
 
 st.dataframe(filtered[["NO", "Sjob_Name", "Table_name", "Multi_SRC_TBL",
-                        "來方資料歸屬", "來方子公司", "狀態", "來源備註"]],
+                        "來方資料歸屬", "來方子公司", "狀態", "替代表", "來源備註"]],
              use_container_width=True, height=400)
 
 st.download_button("下載篩選結果 CSV", filtered.to_csv(index=False, encoding="utf-8-sig"),
                    "缺口明細.csv", "text/csv")
+
+# --- 替代表對照總覽 ---
+st.markdown("---")
+st.subheader("替代表對照總覽 (REPLACE)")
+st.caption("來源：Google Sheet「REPLACE」工作表，顯示原始表與替代表的對應關係及上線狀態")
+
+rep_col1, rep_col2, rep_col3 = st.columns(3)
+total_replace = len(df_replace)
+replace_done = (df_replace["替代表是否已上線"].astype(str).str.strip() == "V").sum()
+replace_pending = total_replace - replace_done
+rep_col1.metric("替代對照總筆數", total_replace)
+rep_col2.metric("替代表已上線", replace_done)
+rep_col3.metric("替代表待處理", replace_pending)
+
+def color_replace_status(val):
+    if str(val).strip() == "V":
+        return "background-color: #5B9279; color: #ffffff"
+    return "background-color: #A6B6BA; color: #000000"
+
+styled_replace = df_replace[["原始TableName", "替代表名稱", "替代表是否已上線", "依源子公司", "備註"]].style.map(
+    color_replace_status, subset=["替代表是否已上線"]
+)
+st.dataframe(styled_replace, use_container_width=True, height=400)
