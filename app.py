@@ -365,26 +365,3 @@ st.dataframe(filtered[["NO", "Sjob_Name", "Table_name", "Multi_SRC_TBL",
 
 st.download_button("下載篩選結果 CSV", filtered.to_csv(index=False, encoding="utf-8-sig"),
                    "缺口明細.csv", "text/csv")
-
-# --- 替代表對照總覽 ---
-st.markdown("---")
-st.subheader("替代表對照總覽 (REPLACE)")
-st.caption("來源：Google Sheet「REPLACE」工作表，顯示原始表與替代表的對應關係及上線狀態")
-
-rep_col1, rep_col2, rep_col3 = st.columns(3)
-total_replace = len(df_replace)
-replace_done = (df_replace["替代表是否已上線"].astype(str).str.strip() == "V").sum()
-replace_pending = total_replace - replace_done
-rep_col1.metric("替代對照總筆數", total_replace)
-rep_col2.metric("替代表已上線", replace_done)
-rep_col3.metric("替代表待處理", replace_pending)
-
-def color_replace_status(val):
-    if str(val).strip() == "V":
-        return "background-color: #5B9279; color: #ffffff"
-    return "background-color: #A6B6BA; color: #000000"
-
-styled_replace = df_replace[["原始TableName", "替代表名稱", "替代表是否已上線", "依源子公司", "備註"]].style.map(
-    color_replace_status, subset=["替代表是否已上線"]
-)
-st.dataframe(styled_replace, use_container_width=True, height=400)
