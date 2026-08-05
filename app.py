@@ -328,18 +328,32 @@ if selected_lookup_table != "-- 請選擇 --":
     source_info = source_rows.iloc[0] if len(source_rows) > 0 else None
 
     if source_info is not None:
-        info_col1, info_col2, info_col3, info_col4, info_col5 = st.columns(5)
-        info_col1.metric("子公司", source_info.get("來方子公司", "未知"))
-        info_col2.metric("屬性", source_info.get("屬性", "未知"))
-        info_col3.metric("是否要上雲", source_info.get("是否要上雲", "未知"))
-        info_col4.metric("是否已上線", "是" if source_info.get("是否已上線") == "V" else "否")
-        info_col5.metric("使用此表的排程數", len(used_by))
+        company = source_info.get("來方子公司", "")
+        company_display = company if pd.notna(company) and str(company).strip() != "" else ""
+        attr = source_info.get("屬性", "")
+        attr_display = attr if pd.notna(attr) and str(attr).strip() != "" else ""
+        upload = source_info.get("是否要上雲", "")
+        upload_display = upload if pd.notna(upload) and str(upload).strip() != "" else ""
+        online = "是" if source_info.get("是否已上線") == "V" else "否"
+        note = source_info.get("備註", "")
+        note_display = note if pd.notna(note) and str(note).strip() != "" else ""
 
-    if len(source_rows) > 0:
-        st.markdown("##### 來源範圍明細（actual）")
-        st.dataframe(source_rows[["No", "DataBaseName", "TableName", "屬性", "來方子公司",
-                                   "Query_count", "是否要上雲", "是否已上線", "備註"]].reset_index(drop=True),
-                     use_container_width=True, height=150)
+        st.markdown("""
+        <style>
+        .lookup-info .stMetric label { font-size: 0.75rem !important; }
+        .lookup-info .stMetric [data-testid="stMetricValue"] { font-size: 1rem !important; }
+        </style>
+        """, unsafe_allow_html=True)
+        with st.container():
+            st.markdown('<div class="lookup-info">', unsafe_allow_html=True)
+            info_col1, info_col2, info_col3, info_col4, info_col5, info_col6 = st.columns(6)
+            info_col1.metric("子公司", company_display)
+            info_col2.metric("屬性", attr_display)
+            info_col3.metric("是否要上雲", upload_display)
+            info_col4.metric("是否已上線", online)
+            info_col5.metric("使用此表的排程數", len(used_by))
+            info_col6.metric("備註", note_display)
+            st.markdown('</div>', unsafe_allow_html=True)
 
     if len(used_by) > 0:
         st.markdown("##### 使用此表的排程清單")
