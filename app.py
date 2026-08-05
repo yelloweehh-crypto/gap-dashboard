@@ -220,13 +220,14 @@ st.subheader("各子公司來源資料表數量")
 company_table_count = df_source.groupby("來方子公司")["TableName_clean"].nunique().reset_index(name="資料表數量")
 company_table_count = company_table_count.sort_values("資料表數量", ascending=False).reset_index(drop=True)
 
-fig_donut = px.pie(company_table_count, values="資料表數量", names="來方子公司", hole=0.45,
+fig_donut = px.pie(company_table_count, values="資料表數量", names="來方子公司", hole=0.4,
                    color_discrete_sequence=["#3a4a4e", "#4a5a5e", "#2e4a3e", "#5a6a6e", "#4e5e62", "#3e5048"])
-fig_donut.update_traces(textinfo="label+value", textfont_size=13,
+fig_donut.update_traces(textinfo="label+value", textfont_size=12,
                         textfont_color="#ffffff", textfont_family="Arial Black",
-                        marker_line_width=0)
-fig_donut.update_layout(width=450, height=400, margin=dict(l=0, r=200, t=30, b=30), **plot_layout)
-col_donut, _ = st.columns([1, 2])
+                        marker_line_width=0, textposition="inside")
+fig_donut.update_layout(width=600, height=550, margin=dict(l=0, r=100, t=20, b=20),
+                        showlegend=False, **plot_layout)
+col_donut, _ = st.columns([2, 1])
 with col_donut:
     st.plotly_chart(fig_donut, use_container_width=False)
 
