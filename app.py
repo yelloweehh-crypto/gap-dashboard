@@ -219,7 +219,12 @@ st.subheader("各子公司來源資料表數量")
 
 company_table_count = df_source.groupby("來方子公司")["TableName_clean"].nunique().reset_index(name="資料表數量")
 company_table_count = company_table_count.sort_values("資料表數量", ascending=False).reset_index(drop=True)
-st.dataframe(company_table_count, use_container_width=True, height=min(400, max(80, 35 * len(company_table_count) + 40)))
+
+fig_donut = px.pie(company_table_count, values="資料表數量", names="來方子公司", hole=0.45,
+                   color_discrete_sequence=["#738488", "#A6B6BA", "#5B9279", "#D0D8DA", "#E1DDD7", "#EFECE7"])
+fig_donut.update_traces(textinfo="label+value", textfont_size=12)
+fig_donut.update_layout(**plot_layout)
+st.plotly_chart(fig_donut, use_container_width=True)
 
 # --- 各 Sjob 上線完整度 ---
 st.markdown("---")
