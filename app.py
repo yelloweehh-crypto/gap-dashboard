@@ -221,10 +221,14 @@ company_table_count = df_source.groupby("來方子公司")["TableName_clean"].nu
 company_table_count = company_table_count.sort_values("資料表數量", ascending=False).reset_index(drop=True)
 
 fig_donut = px.pie(company_table_count, values="資料表數量", names="來方子公司", hole=0.45,
-                   color_discrete_sequence=["#738488", "#A6B6BA", "#5B9279", "#D0D8DA", "#E1DDD7", "#EFECE7"])
-fig_donut.update_traces(textinfo="label+value", textfont_size=12)
-fig_donut.update_layout(**plot_layout)
-st.plotly_chart(fig_donut, use_container_width=True)
+                   color_discrete_sequence=["#3a4a4e", "#4a5a5e", "#2e4a3e", "#5a6a6e", "#4e5e62", "#3e5048"])
+fig_donut.update_traces(textinfo="label+value", textfont_size=13,
+                        textfont_color="#ffffff", textfont_family="Arial Black",
+                        marker_line_width=0)
+fig_donut.update_layout(width=450, height=400, margin=dict(l=0, r=200, t=30, b=30), **plot_layout)
+col_donut, _ = st.columns([1, 2])
+with col_donut:
+    st.plotly_chart(fig_donut, use_container_width=False)
 
 # --- 各 Sjob 上線完整度 ---
 st.markdown("---")
