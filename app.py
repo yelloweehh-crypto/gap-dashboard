@@ -324,18 +324,26 @@ selected_lookup_table = st.selectbox("選擇資料表", ["-- 請選擇 --"] + al
 
 if selected_lookup_table != "-- 請選擇 --":
     used_by = df_target[df_target["Table_name_clean"] == selected_lookup_table].copy()
-    source_info = df_source[df_source["TableName_clean"] == selected_lookup_table].iloc[0] if len(df_source[df_source["TableName_clean"] == selected_lookup_table]) > 0 else None
+    source_rows = df_source[df_source["TableName_clean"] == selected_lookup_table]
+    source_info = source_rows.iloc[0] if len(source_rows) > 0 else None
 
     if source_info is not None:
-        info_col1, info_col2, info_col3, info_col4 = st.columns(4)
+        info_col1, info_col2, info_col3, info_col4, info_col5 = st.columns(5)
         info_col1.metric("子公司", source_info.get("來方子公司", "未知"))
-        info_col2.metric("是否要上雲", source_info.get("是否要上雲", "未知"))
-        info_col3.metric("是否已上線", "是" if source_info.get("是否已上線") == "V" else "否")
-        info_col4.metric("使用此表的排程數", len(used_by))
+        info_col2.metric("屬性", source_info.get("屬性", "未知"))
+        info_col3.metric("是否要上雲", source_info.get("是否要上雲", "未知"))
+        info_col4.metric("是否已上線", "是" if source_info.get("是否已上線") == "V" else "否")
+        info_col5.metric("使用此表的排程數", len(used_by))
+
+    if len(source_rows) > 0:
+        st.markdown("##### 來源範圍明細（actual）")
+        st.dataframe(source_rows[["No", "DataBaseName", "TableName", "屬性", "來方子公司",
+                                   "Query_count", "是否要上雲", "是否已上線", "備註"]].reset_index(drop=True),
+                     use_container_width=True, height=150)
 
     if len(used_by) > 0:
         st.markdown("##### 使用此表的排程清單")
-        st.dataframe(used_by[["Sjob_Name", "Multi_SRC_TBL", "來方資料歸屬", "備註"]],
+        st.dataframe(used_by[["Sjob_Name", "Multi_SRC_TBL", "來方資料歸屬"]],
                      use_container_width=True, height=250)
     else:
         st.warning("此表目前沒有被任何多檔彙整排程使用")
