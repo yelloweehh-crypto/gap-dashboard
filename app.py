@@ -340,8 +340,7 @@ if selected_lookup_table != "-- 請選擇 --":
 
         st.markdown("""
         <style>
-        .lookup-info .stMetric label { font-size: 0.75rem !important; }
-        .lookup-info .stMetric [data-testid="stMetricValue"] { font-size: 1rem !important; }
+        .lookup-info [data-testid="stMetricValue"] { font-size: 0.85rem !important; }
         </style>
         """, unsafe_allow_html=True)
         with st.container():
@@ -357,8 +356,8 @@ if selected_lookup_table != "-- 請選擇 --":
 
     if len(used_by) > 0:
         st.markdown("##### 使用此表的排程清單")
-        st.dataframe(used_by[["Sjob_Name", "Multi_SRC_TBL", "來方資料歸屬"]],
-                     use_container_width=True, height=250)
+        st.dataframe(used_by[["Sjob_Name", "Multi_SRC_TBL", "來方資料歸屬"]].reset_index(drop=True),
+                     use_container_width=False, height=250)
     else:
         st.warning("此表目前沒有被任何多檔彙整排程使用")
 
