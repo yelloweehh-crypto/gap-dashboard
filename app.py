@@ -338,28 +338,22 @@ if selected_lookup_table != "-- 請選擇 --":
         note = source_info.get("備註", "")
         note_display = note if pd.notna(note) and str(note).strip() != "" else ""
 
-        font_size = st.slider("調整數值字體大小 (rem)", 0.5, 1.5, 0.75, 0.05, key="lookup_font")
         st.markdown(f"""
-        <style>
-        .lookup-info [data-testid="stMetricValue"] {{ font-size: {font_size}rem !important; }}
-        </style>
+        <div style="display: flex; gap: 2rem; flex-wrap: wrap; margin: 0.5rem 0 1rem 0;">
+            <div><span style="color: #a0a0b0; font-size: 0.75rem;">子公司</span><br><span style="color: #fff; font-size: 0.9rem;">{company_display}</span></div>
+            <div><span style="color: #a0a0b0; font-size: 0.75rem;">屬性</span><br><span style="color: #fff; font-size: 0.9rem;">{attr_display}</span></div>
+            <div><span style="color: #a0a0b0; font-size: 0.75rem;">是否要上雲</span><br><span style="color: #fff; font-size: 0.9rem;">{upload_display}</span></div>
+            <div><span style="color: #a0a0b0; font-size: 0.75rem;">是否已上線</span><br><span style="color: #fff; font-size: 0.9rem;">{online}</span></div>
+            <div><span style="color: #a0a0b0; font-size: 0.75rem;">使用此表的排程數</span><br><span style="color: #fff; font-size: 0.9rem;">{len(used_by)}</span></div>
+            <div><span style="color: #a0a0b0; font-size: 0.75rem;">備註</span><br><span style="color: #fff; font-size: 0.9rem;">{note_display}</span></div>
+        </div>
         """, unsafe_allow_html=True)
-        with st.container():
-            st.markdown('<div class="lookup-info">', unsafe_allow_html=True)
-            info_col1, info_col2, info_col3, info_col4, info_col5, info_col6 = st.columns(6)
-            info_col1.metric("子公司", company_display)
-            info_col2.metric("屬性", attr_display)
-            info_col3.metric("是否要上雲", upload_display)
-            info_col4.metric("是否已上線", online)
-            info_col5.metric("使用此表的排程數", len(used_by))
-            info_col6.metric("備註", note_display)
-            st.markdown('</div>', unsafe_allow_html=True)
 
     if len(used_by) > 0:
         st.markdown("##### 使用此表的排程清單")
         table_height = min(400, max(80, 35 * len(used_by) + 40))
         st.dataframe(used_by[["Sjob_Name", "Multi_SRC_TBL", "來方資料歸屬"]].reset_index(drop=True),
-                     use_container_width=False, height=table_height)
+                     use_container_width=True, height=table_height)
     else:
         st.warning("此表目前沒有被任何多檔彙整排程使用")
 
