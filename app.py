@@ -338,9 +338,10 @@ if selected_lookup_table != "-- 請選擇 --":
         note = source_info.get("備註", "")
         note_display = note if pd.notna(note) and str(note).strip() != "" else ""
 
-        st.markdown("""
+        font_size = st.slider("調整數值字體大小 (rem)", 0.5, 1.5, 0.75, 0.05, key="lookup_font")
+        st.markdown(f"""
         <style>
-        .lookup-info [data-testid="stMetricValue"] { font-size: 0.85rem !important; }
+        .lookup-info [data-testid="stMetricValue"] {{ font-size: {font_size}rem !important; }}
         </style>
         """, unsafe_allow_html=True)
         with st.container():
@@ -356,8 +357,9 @@ if selected_lookup_table != "-- 請選擇 --":
 
     if len(used_by) > 0:
         st.markdown("##### 使用此表的排程清單")
+        table_height = min(400, max(80, 35 * len(used_by) + 40))
         st.dataframe(used_by[["Sjob_Name", "Multi_SRC_TBL", "來方資料歸屬"]].reset_index(drop=True),
-                     use_container_width=False, height=250)
+                     use_container_width=False, height=table_height)
     else:
         st.warning("此表目前沒有被任何多檔彙整排程使用")
 
