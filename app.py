@@ -213,30 +213,13 @@ with st.expander("📋 點擊查看各指標明細"):
         unreg_detail = df_merged[df_merged["狀態"] == "未登錄在來源範圍"][["Table_name", "Sjob_Name", "Multi_SRC_TBL"]].drop_duplicates(subset="Table_name").sort_values("Table_name").reset_index(drop=True)
         st.dataframe(unreg_detail, use_container_width=True, height=300)
 
-# --- 各子公司上線進度 ---
+# --- 各子公司來源資料表數量 ---
 st.markdown("---")
-st.subheader("各子公司上線進度")
+st.subheader("各子公司來源資料表數量")
 
-def classify_source_status(row):
-    table_clean = str(row.get("TableName_clean", "")).strip().upper()
-    if row["是否要上雲"] == "X":
-        if table_clean in replaced_tables:
-            return "已由替代表覆蓋"
-        return "不上雲"
-    elif row["是否已上線"] == "V":
-        return "已上線"
-    elif row["是否要上雲"] == "V":
-        return "待上線(缺口)"
-    else:
-        return "待確認"
-
-df_source_company = df_source.copy()
-df_source_company["狀態"] = df_source_company.apply(classify_source_status, axis=1)
-company_status = df_source_company.groupby(["來方子公司", "狀態"]).size().reset_index(name="數量")
-fig_stack = px.bar(company_status, x="來方子公司", y="數量", color="狀態",
-                   color_discrete_map=color_map, barmode="stack")
-fig_stack.update_layout(**plot_layout)
-st.plotly_chart(fig_stack, use_container_width=True)
+company_table_count = df_source.groupby("來方子公司")["TableName_clean"].nunique().reset_index(name="資料表數量")
+company_table_count = company_table_count.sort_values("資料表數量", ascending=False).reset_index(drop=True)
+st.dataframe(company_table_count, use_container_width=True, height=min(400, max(80, 35 * len(company_table_count) + 40)))
 
 # --- 各 Sjob 上線完整度 ---
 st.markdown("---")
@@ -367,51 +350,3 @@ if selected_lookup_table != "-- 請選擇 --":
     else:
         st.warning("此表目前沒有被任何多檔彙整排程使用")
 
-# --- 篩選與明細 ---
-st.markdown("---")
-st.subheader("明細查詢")
-
-quick_col1, quick_col2, quick_col3, quick_col4 = st.columns(4)
-with quick_col1:
-    if st.button(f"只看未登錄 ({not_registered})"):
-        st.session_state["quick_filter"] = ["未登錄在來源範圍"]
-with quick_col2:
-    if st.button(f"只看缺口 ({gap_tables})"):
-        st.session_state["quick_filter"] = ["待上線(缺口)"]
-with quick_col3:
-    if st.button(f"只看已上線 ({online_tables + replaced_count})"):
-        st.session_state["quick_filter"] = ["已上線", "已由替代表覆蓋"]
-with quick_col4:
-    if st.button("顯示全部"):
-        st.session_state["quick_filter"] = df_merged["狀態"].unique().tolist()
-
-default_status = st.session_state.get("quick_filter", ["待上線(缺口)", "未登錄在來源範圍"])
-
-filter_col1, filter_col2, filter_col3, filter_col4 = st.columns(4)
-with filter_col1:
-    selected_status = st.multiselect("篩選狀態", df_merged["狀態"].unique().tolist(),
-                                     default=default_status)
-with filter_col2:
-    sjob_list = ["全部"] + sorted(df_merged["Sjob_Name"].unique().tolist())
-    selected_sjob = st.selectbox("篩選 Sjob", sjob_list)
-with filter_col3:
-    company_list = ["全部"] + sorted(df_merged["來方子公司"].dropna().unique().tolist())
-    selected_company = st.selectbox("篩選子公司", company_list)
-with filter_col4:
-    source_type_list = ["全部"] + sorted(df_merged["來方資料歸屬"].dropna().unique().tolist())
-    selected_source_type = st.selectbox("篩選來方資料歸屬", source_type_list)
-
-filtered = df_merged[df_merged["狀態"].isin(selected_status)]
-if selected_sjob != "全部":
-    filtered = filtered[filtered["Sjob_Name"] == selected_sjob]
-if selected_company != "全部":
-    filtered = filtered[filtered["來方子公司"] == selected_company]
-if selected_source_type != "全部":
-    filtered = filtered[filtered["來方資料歸屬"] == selected_source_type]
-
-st.dataframe(filtered[["NO", "Sjob_Name", "Table_name", "Multi_SRC_TBL",
-                        "來方資料歸屬", "來方子公司", "狀態", "替代表", "來源備註"]],
-             use_container_width=True, height=400)
-
-st.download_button("下載篩選結果 CSV", filtered.to_csv(index=False, encoding="utf-8-sig"),
-                   "缺口明細.csv", "text/csv")
