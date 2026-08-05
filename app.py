@@ -222,10 +222,10 @@ company_table_count = company_table_count.sort_values("資料表數量", ascendi
 sjob_summary = df_merged.groupby("Sjob_Name").apply(
     lambda g: pd.Series({
         "總來源數": len(g),
-        "已上線數": (g["狀態"] == "已上線").sum(),
+        "已上線數": g["狀態"].isin(["已上線", "已由替代表覆蓋"]).sum(),
         "缺口數": (g["狀態"] == "待上線(缺口)").sum(),
         "不上雲數": (g["狀態"] == "不上雲").sum(),
-        "完成率%": round((g["狀態"] == "已上線").sum() / len(g) * 100, 1)
+        "完成率%": round(g["狀態"].isin(["已上線", "已由替代表覆蓋"]).sum() / len(g) * 100, 1)
     })
 ).reset_index()
 sjob_summary = sjob_summary.sort_values("完成率%", ascending=True)
