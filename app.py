@@ -167,7 +167,7 @@ plot_layout = dict(
 
 # --- 儀表板 KPI ---
 st.markdown("---")
-col0, col1, col2, col3, col4, col5 = st.columns(6)
+col0, col1, col2, col3, col4, col5, col6 = st.columns(7)
 
 total_sjobs = df_merged["Sjob_Name"].nunique()
 total_tables = df_merged["Table_name"].nunique()
@@ -176,6 +176,7 @@ replaced_count = df_merged[df_merged["狀態"] == "已由替代表覆蓋"]["Tabl
 gap_tables = df_merged[df_merged["狀態"] == "待上線(缺口)"]["Table_name"].nunique()
 no_cloud = df_merged[df_merged["狀態"] == "不上雲"]["Table_name"].nunique()
 not_registered = df_merged[df_merged["狀態"] == "未登錄在來源範圍"]["Table_name"].nunique()
+pending_confirm = df_merged[df_merged["狀態"] == "待確認"]["Table_name"].nunique()
 
 col0.metric("多檔彙整排程總數", total_sjobs)
 col1.metric("目標來源總數 (不重複)", total_tables)
@@ -183,6 +184,7 @@ col2.metric("已上線", online_tables + replaced_count)
 col3.metric("待上線(缺口)", gap_tables, delta=f"-{gap_tables}" if gap_tables > 0 else "0")
 col4.metric("不上雲", no_cloud)
 col5.metric("未登錄", not_registered)
+col6.metric("待確認", pending_confirm)
 
 online_rate = (online_tables + replaced_count) / total_tables * 100 if total_tables > 0 else 0
 st.progress(online_rate / 100)
