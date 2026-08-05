@@ -323,7 +323,17 @@ all_source_tables = sorted(df_source_filtered["TableName_clean"].dropna().unique
 selected_lookup_table = st.selectbox("選擇資料表", ["-- 請選擇 --"] + all_source_tables, key="lookup_table")
 
 if selected_lookup_table != "-- 請選擇 --":
-    used_by = df_target[df_target["Table_name_clean"] == selected_lookup_table].copy()
+    # 直接使用該表的排程
+    used_by_direct = df_target[df_target["Table_name_clean"] == selected_lookup_table].copy()
+    used_by_direct["使用方式"] = "直接使用"
+
+    # 該表作為替代表時，找出它替代了哪些原始表，再找那些原始表對應的排程
+    replaced_originals = df_replace[df_replace["替代表名稱_clean"] == selected_lookup_table]["原始TableName_clean"].unique()
+    used_by_replace = df_target[df_target["Table_name_clean"].isin(replaced_originals)].copy()
+    used_by_replace["使用方式"] = "替代 " + used_by_replace["Table_name_clean"]
+
+    used_by = pd.concat([used_by_direct, used_by_replace], ignore_index=True).drop_duplicates(subset=["Sjob_Name", "Table_name_clean"])
+
     source_rows = df_source[df_source["TableName_clean"] == selected_lookup_table]
     source_info = source_rows.iloc[0] if len(source_rows) > 0 else None
 
@@ -352,7 +362,7 @@ if selected_lookup_table != "-- 請選擇 --":
     if len(used_by) > 0:
         st.markdown("##### 使用此表的排程清單")
         table_height = min(400, max(80, 35 * len(used_by) + 40))
-        st.dataframe(used_by[["Sjob_Name", "Multi_SRC_TBL", "來方資料歸屬"]].reset_index(drop=True),
+        st.dataframe(used_by[["Sjob_Name", "Multi_SRC_TBL", "來方資料歸屬", "使用方式"]].reset_index(drop=True),
                      use_container_width=True, height=table_height)
     else:
         st.warning("此表目前沒有被任何多檔彙整排程使用")
