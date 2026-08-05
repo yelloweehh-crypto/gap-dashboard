@@ -225,7 +225,7 @@ fig_donut = px.pie(company_table_count, values="資料表數量", names="來方�
 fig_donut.update_traces(textinfo="label+value", textfont_size=12,
                         textfont_color="#ffffff", textfont_family="Arial Black",
                         marker_line_width=0, textposition="inside")
-fig_donut.update_layout(width=600, height=550, margin=dict(l=0, r=100, t=20, b=20),
+fig_donut.update_layout(width=500, height=470, margin=dict(l=0, r=100, t=20, b=20),
                         showlegend=False, **plot_layout)
 col_donut, _ = st.columns([2, 1])
 with col_donut:
@@ -255,12 +255,11 @@ st.plotly_chart(fig_heatmap, use_container_width=True)
 st.markdown("---")
 st.subheader("排程缺口詳情 — 選擇排程查看缺了哪些表")
 
-sjobs_with_gaps = df_merged[df_merged["狀態"].isin(["待上線(缺口)", "未登錄在來源範圍"])]["Sjob_Name"].unique()
-sjobs_with_gaps_sorted = sorted(sjobs_with_gaps)
+all_sjobs_sorted = sorted(df_merged["Sjob_Name"].unique())
 
 selected_detail_sjob = st.selectbox(
-    "選擇排程 (僅顯示有缺口的)",
-    ["-- 請選擇 --"] + sjobs_with_gaps_sorted,
+    "選擇排程",
+    ["-- 請選擇 --"] + all_sjobs_sorted,
     key="detail_sjob"
 )
 
