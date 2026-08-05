@@ -238,7 +238,7 @@ with col_left:
                        color_discrete_sequence=["#3a4a4e", "#4a5a5e", "#2e4a3e", "#5a6a6e", "#4e5e62", "#3e5048"])
     fig_donut.update_traces(textinfo="label+value", textfont_size=12,
                             textfont_color="#ffffff", textfont_family="Arial Black",
-                            marker_line_width=0, marker_line_color="rgba(0,0,0,0)",
+                            marker_line_width=0.5, marker_line_color="#000000",
                             textposition="inside")
     fig_donut.update_layout(height=470, margin=dict(l=0, r=0, t=20, b=20),
                             showlegend=False, **plot_layout)
