@@ -213,27 +213,12 @@ with st.expander("📋 點擊查看各指標明細"):
         unreg_detail = df_merged[df_merged["狀態"] == "未登錄在來源範圍"][["Table_name", "Sjob_Name", "Multi_SRC_TBL"]].drop_duplicates(subset="Table_name").sort_values("Table_name").reset_index(drop=True)
         st.dataframe(unreg_detail, use_container_width=True, height=300)
 
-# --- 各子公司來源資料表數量 ---
+# --- 各子公司來源資料表數量 + 各 Sjob 上線完整度（並排） ---
 st.markdown("---")
-st.subheader("各子公司來源資料表數量")
 
 company_table_count = df_source.groupby("來方子公司")["TableName_clean"].nunique().reset_index(name="資料表數量")
 company_table_count = company_table_count.sort_values("資料表數量", ascending=False).reset_index(drop=True)
 
-fig_donut = px.pie(company_table_count, values="資料表數量", names="來方子公司", hole=0.4,
-                   color_discrete_sequence=["#3a4a4e", "#4a5a5e", "#2e4a3e", "#5a6a6e", "#4e5e62", "#3e5048"])
-fig_donut.update_traces(textinfo="label+value", textfont_size=12,
-                        textfont_color="#ffffff", textfont_family="Arial Black",
-                        marker_line_width=0, textposition="inside")
-fig_donut.update_layout(width=500, height=470, margin=dict(l=0, r=100, t=20, b=20),
-                        showlegend=False, **plot_layout)
-col_donut, _ = st.columns([2, 1])
-with col_donut:
-    st.plotly_chart(fig_donut, use_container_width=False)
-
-# --- 各 Sjob 上線完整度 ---
-st.markdown("---")
-st.subheader("各 Sjob 上線完整度")
 sjob_summary = df_merged.groupby("Sjob_Name").apply(
     lambda g: pd.Series({
         "總來源數": len(g),
@@ -245,11 +230,26 @@ sjob_summary = df_merged.groupby("Sjob_Name").apply(
 ).reset_index()
 sjob_summary = sjob_summary.sort_values("完成率%", ascending=True)
 
-fig_heatmap = px.bar(sjob_summary, x="完成率%", y="Sjob_Name", orientation="h",
-                     color="完成率%", color_continuous_scale=["#EFECE7", "#E1DDD7", "#D0D8DA", "#A6B6BA", "#738488"],
-                     range_color=[0, 100])
-fig_heatmap.update_layout(height=max(400, len(sjob_summary) * 25), yaxis_title="", **plot_layout)
-st.plotly_chart(fig_heatmap, use_container_width=True)
+col_left, col_right = st.columns(2)
+
+with col_left:
+    st.subheader("各子公司來源資料表數量")
+    fig_donut = px.pie(company_table_count, values="資料表數量", names="來方子公司", hole=0.4,
+                       color_discrete_sequence=["#3a4a4e", "#4a5a5e", "#2e4a3e", "#5a6a6e", "#4e5e62", "#3e5048"])
+    fig_donut.update_traces(textinfo="label+value", textfont_size=12,
+                            textfont_color="#ffffff", textfont_family="Arial Black",
+                            marker_line_width=0, textposition="inside")
+    fig_donut.update_layout(height=470, margin=dict(l=0, r=0, t=20, b=20),
+                            showlegend=False, **plot_layout)
+    st.plotly_chart(fig_donut, use_container_width=True)
+
+with col_right:
+    st.subheader("各 Sjob 上線完整度")
+    fig_heatmap = px.bar(sjob_summary, x="完成率%", y="Sjob_Name", orientation="h",
+                         color="完成率%", color_continuous_scale=["#EFECE7", "#E1DDD7", "#D0D8DA", "#A6B6BA", "#738488"],
+                         range_color=[0, 100])
+    fig_heatmap.update_layout(height=max(400, len(sjob_summary) * 25), yaxis_title="", **plot_layout)
+    st.plotly_chart(fig_heatmap, use_container_width=True)
 
 # --- 排程缺口詳情 ---
 st.markdown("---")
