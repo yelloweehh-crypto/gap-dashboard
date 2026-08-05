@@ -192,12 +192,13 @@ st.caption(f"上線完成率: {online_rate:.1f}%（含替代表已覆蓋）")
 
 # --- KPI 明細展開 ---
 with st.expander("📋 點擊查看各指標明細"):
-    kpi_tab1, kpi_tab2, kpi_tab3, kpi_tab4, kpi_tab5 = st.tabs([
+    kpi_tab1, kpi_tab2, kpi_tab3, kpi_tab4, kpi_tab5, kpi_tab6 = st.tabs([
         f"多檔彙整排程 ({total_sjobs})",
         f"已上線 ({online_tables + replaced_count})",
         f"待上線-缺口 ({gap_tables})",
         f"不上雲 ({no_cloud})",
         f"未登錄 ({not_registered})",
+        f"待確認 ({pending_confirm})",
     ])
     with kpi_tab1:
         sjob_list_detail = df_merged[["Sjob_Name"]].drop_duplicates().sort_values("Sjob_Name").reset_index(drop=True)
@@ -214,6 +215,9 @@ with st.expander("📋 點擊查看各指標明細"):
     with kpi_tab5:
         unreg_detail = df_merged[df_merged["狀態"] == "未登錄在來源範圍"][["Table_name", "Sjob_Name", "Multi_SRC_TBL"]].drop_duplicates(subset="Table_name").sort_values("Table_name").reset_index(drop=True)
         st.dataframe(unreg_detail, use_container_width=True, height=300)
+    with kpi_tab6:
+        pending_detail = df_merged[df_merged["狀態"] == "待確認"][["Table_name", "來方子公司", "Sjob_Name", "來源備註"]].drop_duplicates(subset="Table_name").sort_values("Table_name").reset_index(drop=True)
+        st.dataframe(pending_detail, use_container_width=True, height=300)
 
 # --- 各子公司來源資料表數量 + 各 Sjob 上線完整度（並排） ---
 st.markdown("---")
