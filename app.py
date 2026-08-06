@@ -225,29 +225,29 @@ with st.expander("📋 點擊查看各指標明細"):
         f"待確認 ({pending_confirm})",
     ])
     with kpi_tab1:
-        sjob_list_detail = df_merged[["Sjob_Name"]].drop_duplicates().sort_values("Sjob_Name").reset_index(drop=True)
+        sjob_list_detail = df_merged[["Sjob_Name"]].drop_duplicates().sort_values("Sjob_Name").reset_index(drop=True).pipe(lambda df: df.set_axis(range(1, len(df) + 1)))
         st.dataframe(sjob_list_detail, use_container_width=True, height=300)
     with kpi_tab2:
-        online_detail = df_merged[df_merged["狀態"] == "已上線"][["Table_name", "實際來源表", "來方子公司", "替代表"]].drop_duplicates(subset="Table_name").sort_values("Table_name").reset_index(drop=True)
+        online_detail = df_merged[df_merged["狀態"] == "已上線"][["Table_name", "實際來源表", "來方子公司", "替代表"]].drop_duplicates(subset="Table_name").sort_values("Table_name").reset_index(drop=True).pipe(lambda df: df.set_axis(range(1, len(df) + 1)))
         st.dataframe(online_detail, use_container_width=True, height=300)
     with kpi_tab3:
-        gap_detail_kpi = df_merged[df_merged["狀態"] == "待上線(缺口)"][["Table_name", "來方子公司", "Sjob_Name", "來源備註"]].drop_duplicates(subset="Table_name").sort_values("Table_name").reset_index(drop=True)
+        gap_detail_kpi = df_merged[df_merged["狀態"] == "待上線(缺口)"][["Table_name", "來方子公司", "Sjob_Name", "來源備註"]].drop_duplicates(subset="Table_name").sort_values("Table_name").reset_index(drop=True).pipe(lambda df: df.set_axis(range(1, len(df) + 1)))
         st.dataframe(gap_detail_kpi, use_container_width=True, height=300)
     with kpi_tab4:
-        nocloud_detail = df_merged[df_merged["狀態"] == "不上雲"][["Table_name", "來方子公司", "來源備註"]].drop_duplicates(subset="Table_name").sort_values("Table_name").reset_index(drop=True)
+        nocloud_detail = df_merged[df_merged["狀態"] == "不上雲"][["Table_name", "來方子公司", "來源備註"]].drop_duplicates(subset="Table_name").sort_values("Table_name").reset_index(drop=True).pipe(lambda df: df.set_axis(range(1, len(df) + 1)))
         st.dataframe(nocloud_detail, use_container_width=True, height=300)
     with kpi_tab5:
-        unreg_detail = df_merged[df_merged["狀態"] == "未登錄在來源範圍"][["Table_name", "Sjob_Name", "Multi_SRC_TBL"]].drop_duplicates(subset="Table_name").sort_values("Table_name").reset_index(drop=True)
+        unreg_detail = df_merged[df_merged["狀態"] == "未登錄在來源範圍"][["Table_name", "Sjob_Name", "Multi_SRC_TBL"]].drop_duplicates(subset="Table_name").sort_values("Table_name").reset_index(drop=True).pipe(lambda df: df.set_axis(range(1, len(df) + 1)))
         st.dataframe(unreg_detail, use_container_width=True, height=300)
     with kpi_tab6:
-        pending_detail = df_merged[df_merged["狀態"] == "待確認"][["Table_name", "來方子公司", "Sjob_Name", "來源備註"]].drop_duplicates(subset="Table_name").sort_values("Table_name").reset_index(drop=True)
+        pending_detail = df_merged[df_merged["狀態"] == "待確認"][["Table_name", "來方子公司", "Sjob_Name", "來源備註"]].drop_duplicates(subset="Table_name").sort_values("Table_name").reset_index(drop=True).pipe(lambda df: df.set_axis(range(1, len(df) + 1)))
         st.dataframe(pending_detail, use_container_width=True, height=300)
 
 # --- 各子公司來源資料表數量 + 各 Sjob 上線完整度（並排） ---
 st.markdown("---")
 
 company_table_count = df_source.groupby("來方子公司")["TableName_clean"].nunique().reset_index(name="資料表數量")
-company_table_count = company_table_count.sort_values("資料表數量", ascending=False).reset_index(drop=True)
+company_table_count = company_table_count.sort_values("資料表數量", ascending=False).reset_index(drop=True).pipe(lambda df: df.set_axis(range(1, len(df) + 1)))
 
 sjob_summary = df_merged.groupby("Sjob_Name").apply(
     lambda g: pd.Series({
@@ -384,7 +384,7 @@ if selected_lookup_table != "-- 請選擇 --":
     if len(used_by) > 0:
         st.markdown("##### 使用此表的排程清單")
         table_height = min(400, max(80, 35 * len(used_by) + 40))
-        st.dataframe(used_by[["Sjob_Name", "Multi_SRC_TBL", "來方資料歸屬", "使用方式"]].reset_index(drop=True),
+        st.dataframe(used_by[["Sjob_Name", "Multi_SRC_TBL", "來方資料歸屬", "使用方式"]].reset_index(drop=True).pipe(lambda df: df.set_axis(range(1, len(df) + 1))),
                      use_container_width=True, height=table_height)
     else:
         st.warning("此表目前沒有被任何多檔彙整排程使用")
