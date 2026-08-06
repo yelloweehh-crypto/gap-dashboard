@@ -98,6 +98,8 @@ except Exception as e:
 # --- 建立替代表對照 ---
 # 原始表 -> 替代表名稱（取第一筆）
 replace_map = df_replace.drop_duplicates(subset="原始TableName_clean", keep="first").set_index("原始TableName_clean")["替代表名稱_clean"].to_dict()
+# 原始表 -> 替代表是否已上線（從 Replace 清單 C 欄）
+replace_online_map = df_replace.drop_duplicates(subset="原始TableName_clean", keep="first").set_index("原始TableName_clean")["替代表是否已上線"].to_dict()
 
 # --- 建立比對 ---
 df_source["TableName_clean"] = df_source["TableName"].astype(str).str.replace(".csv", "", regex=False).str.replace(".txt", "", regex=False).str.strip().str.upper()
@@ -108,24 +110,44 @@ source_status = df_source.drop_duplicates(subset="TableName_clean", keep="first"
 records = []
 for _, row in df_target.iterrows():
     table_clean = row["Table_name_clean"]
-    # 如果有替代表，用替代表去查 actual 狀態
-    actual_table = replace_map.get(table_clean, table_clean)
-    info = source_status.get(actual_table, {})
     has_replace = table_clean in replace_map
-    records.append({
-        "NO": row["NO"],
-        "Sjob_Name": row["Sjob_Name"],
-        "Table_name": table_clean,
-        "實際來源表": actual_table if has_replace else "",
-        "Multi_SRC_TBL": row["Multi_SRC_TBL"],
-        "來方資料歸屬": row["來方資料歸屬"],
-        "是否要上雲": info.get("是否要上雲", "未登錄"),
-        "是否已上線": info.get("是否已上線", ""),
-        "來方子公司": info.get("來方子公司", "未知"),
-        "屬性": info.get("屬性", "未知"),
-        "來源備註": info.get("備註", ""),
-        "有替代表": has_replace,
-    })
+    actual_table = replace_map.get(table_clean, table_clean)
+
+    if has_replace:
+        # 有替代表：是否已上線依 Replace 清單 C 欄
+        replace_online_val = str(replace_online_map.get(table_clean, "")).strip()
+        info = source_status.get(actual_table, {})
+        records.append({
+            "NO": row["NO"],
+            "Sjob_Name": row["Sjob_Name"],
+            "Table_name": table_clean,
+            "實際來源表": actual_table,
+            "Multi_SRC_TBL": row["Multi_SRC_TBL"],
+            "來方資料歸屬": row["來方資料歸屬"],
+            "是否要上雲": "V",
+            "是否已上線": "V" if replace_online_val == "V" else "",
+            "來方子公司": info.get("來方子公司", "未知"),
+            "屬性": info.get("屬性", "未知"),
+            "來源備註": info.get("備註", ""),
+            "有替代表": True,
+        })
+    else:
+        # 沒有替代表：用原始表查 actual
+        info = source_status.get(table_clean, {})
+        records.append({
+            "NO": row["NO"],
+            "Sjob_Name": row["Sjob_Name"],
+            "Table_name": table_clean,
+            "實際來源表": "",
+            "Multi_SRC_TBL": row["Multi_SRC_TBL"],
+            "來方資料歸屬": row["來方資料歸屬"],
+            "是否要上雲": info.get("是否要上雲", "未登錄"),
+            "是否已上線": info.get("是否已上線", ""),
+            "來方子公司": info.get("來方子公司", "未知"),
+            "屬性": info.get("屬性", "未知"),
+            "來源備註": info.get("備註", ""),
+            "有替代表": False,
+        })
 
 df_merged = pd.DataFrame(records)
 
