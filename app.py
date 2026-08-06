@@ -50,6 +50,10 @@ st.markdown("""
         color: #A6B6BA;
         border: 1px solid #738488;
     }
+    .stApp * {
+        user-select: text !important;
+        -webkit-user-select: text !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -367,7 +371,7 @@ if selected_lookup_table != "-- 請選擇 --":
         note_display = note if pd.notna(note) and str(note).strip() != "" else ""
 
         st.markdown(f"""
-        <div style="display: flex; gap: 2rem; flex-wrap: wrap; margin: 0.5rem 0 1rem 0;">
+        <div style="display: flex; gap: 2rem; flex-wrap: wrap; margin: 0.5rem 0 1rem 0; user-select: text; -webkit-user-select: text;">
             <div><span style="color: #a0a0b0; font-size: 0.75rem;">子公司</span><br><span style="color: #fff; font-size: 0.9rem;">{company_display}</span></div>
             <div><span style="color: #a0a0b0; font-size: 0.75rem;">屬性</span><br><span style="color: #fff; font-size: 0.9rem;">{attr_display}</span></div>
             <div><span style="color: #a0a0b0; font-size: 0.75rem;">是否要上雲</span><br><span style="color: #fff; font-size: 0.9rem;">{upload_display}</span></div>
