@@ -95,9 +95,9 @@ except Exception as e:
     st.info("請確認 Google Sheet 已設定為「知道連結的人可以檢視」")
     st.stop()
 
-# --- 建立替代表查詢集合 ---
-replace_online = df_replace[df_replace["替代表是否已上線"].astype(str).str.strip() == "V"]
-replaced_tables = set(replace_online["原始TableName_clean"].unique())
+# --- 建立替代表對照 ---
+# 原始表 -> 替代表名稱（取第一筆）
+replace_map = df_replace.drop_duplicates(subset="原始TableName_clean", keep="first").set_index("原始TableName_clean")["替代表名稱_clean"].to_dict()
 
 # --- 建立比對 ---
 df_source["TableName_clean"] = df_source["TableName"].astype(str).str.replace(".csv", "", regex=False).str.replace(".txt", "", regex=False).str.strip().str.upper()
@@ -107,13 +107,16 @@ source_status = df_source.drop_duplicates(subset="TableName_clean", keep="first"
 
 records = []
 for _, row in df_target.iterrows():
-    table = row["Table_name"]
     table_clean = row["Table_name_clean"]
-    info = source_status.get(table_clean, {})
+    # 如果有替代表，用替代表去查 actual 狀態
+    actual_table = replace_map.get(table_clean, table_clean)
+    info = source_status.get(actual_table, {})
+    has_replace = table_clean in replace_map
     records.append({
         "NO": row["NO"],
         "Sjob_Name": row["Sjob_Name"],
         "Table_name": table_clean,
+        "實際來源表": actual_table if has_replace else "",
         "Multi_SRC_TBL": row["Multi_SRC_TBL"],
         "來方資料歸屬": row["來方資料歸屬"],
         "是否要上雲": info.get("是否要上雲", "未登錄"),
@@ -121,22 +124,19 @@ for _, row in df_target.iterrows():
         "來方子公司": info.get("來方子公司", "未知"),
         "屬性": info.get("屬性", "未知"),
         "來源備註": info.get("備註", ""),
+        "有替代表": has_replace,
     })
 
 df_merged = pd.DataFrame(records)
 
 def classify_status(row):
-    if row["是否要上雲"] == "X":
-        if row["Table_name"] in replaced_tables:
-            return "已由替代表覆蓋"
-        return "不上雲"
-    elif row["是否已上線"] == "V":
+    if row["是否已上線"] == "V":
         return "已上線"
     elif row["是否要上雲"] == "V":
         return "待上線(缺口)"
+    elif row["是否要上雲"] == "X":
+        return "不上雲"
     elif row["是否要上雲"] == "未登錄":
-        if row["Table_name"] in replaced_tables:
-            return "已由替代表覆蓋"
         return "未登錄在來源範圍"
     else:
         return "待確認"
@@ -152,7 +152,6 @@ df_merged["替代表"] = df_merged["Table_name"].map(replace_lookup).fillna("")
 # --- 深色主題配色 ---
 color_map = {
     "已上線": "#738488",
-    "已由替代表覆蓋": "#5B9279",
     "待上線(缺口)": "#A6B6BA",
     "不上雲": "#D0D8DA",
     "未登錄在來源範圍": "#E1DDD7",
@@ -172,7 +171,6 @@ col0, col1, col2, col3, col4, col5, col6 = st.columns(7)
 total_sjobs = df_merged["Sjob_Name"].nunique()
 total_tables = df_merged["Table_name"].nunique()
 online_tables = df_merged[df_merged["狀態"] == "已上線"]["Table_name"].nunique()
-replaced_count = df_merged[df_merged["狀態"] == "已由替代表覆蓋"]["Table_name"].nunique()
 gap_tables = df_merged[df_merged["狀態"] == "待上線(缺口)"]["Table_name"].nunique()
 no_cloud = df_merged[df_merged["狀態"] == "不上雲"]["Table_name"].nunique()
 not_registered = df_merged[df_merged["狀態"] == "未登錄在來源範圍"]["Table_name"].nunique()
@@ -180,21 +178,21 @@ pending_confirm = df_merged[df_merged["狀態"] == "待確認"]["Table_name"].nu
 
 col0.metric("多檔彙整排程總數", total_sjobs)
 col1.metric("目標來源總數 (不重複)", total_tables)
-col2.metric("已上線", online_tables + replaced_count)
+col2.metric("已上線", online_tables)
 col3.metric("待上線(缺口)", gap_tables, delta=f"-{gap_tables}" if gap_tables > 0 else "0")
 col4.metric("不上雲", no_cloud)
 col5.metric("未登錄", not_registered)
 col6.metric("待確認", pending_confirm)
 
-online_rate = (online_tables + replaced_count) / total_tables * 100 if total_tables > 0 else 0
+online_rate = online_tables / total_tables * 100 if total_tables > 0 else 0
 st.progress(online_rate / 100)
-st.caption(f"上線完成率: {online_rate:.1f}%（含替代表已覆蓋）")
+st.caption(f"上線完成率: {online_rate:.1f}%")
 
 # --- KPI 明細展開 ---
 with st.expander("📋 點擊查看各指標明細"):
     kpi_tab1, kpi_tab2, kpi_tab3, kpi_tab4, kpi_tab5, kpi_tab6 = st.tabs([
         f"多檔彙整排程 ({total_sjobs})",
-        f"已上線 ({online_tables + replaced_count})",
+        f"已上線 ({online_tables})",
         f"待上線-缺口 ({gap_tables})",
         f"不上雲 ({no_cloud})",
         f"未登錄 ({not_registered})",
@@ -204,7 +202,7 @@ with st.expander("📋 點擊查看各指標明細"):
         sjob_list_detail = df_merged[["Sjob_Name"]].drop_duplicates().sort_values("Sjob_Name").reset_index(drop=True)
         st.dataframe(sjob_list_detail, use_container_width=True, height=300)
     with kpi_tab2:
-        online_detail = df_merged[df_merged["狀態"].isin(["已上線", "已由替代表覆蓋"])][["Table_name", "來方子公司", "狀態", "替代表"]].drop_duplicates(subset="Table_name").sort_values("Table_name").reset_index(drop=True)
+        online_detail = df_merged[df_merged["狀態"] == "已上線"][["Table_name", "實際來源表", "來方子公司", "替代表"]].drop_duplicates(subset="Table_name").sort_values("Table_name").reset_index(drop=True)
         st.dataframe(online_detail, use_container_width=True, height=300)
     with kpi_tab3:
         gap_detail_kpi = df_merged[df_merged["狀態"] == "待上線(缺口)"][["Table_name", "來方子公司", "Sjob_Name", "來源備註"]].drop_duplicates(subset="Table_name").sort_values("Table_name").reset_index(drop=True)
@@ -228,10 +226,10 @@ company_table_count = company_table_count.sort_values("資料表數量", ascendi
 sjob_summary = df_merged.groupby("Sjob_Name").apply(
     lambda g: pd.Series({
         "總來源數": len(g),
-        "已上線數": g["狀態"].isin(["已上線", "已由替代表覆蓋"]).sum(),
+        "已上線數": (g["狀態"] == "已上線").sum(),
         "缺口數": (g["狀態"] == "待上線(缺口)").sum(),
         "不上雲數": (g["狀態"] == "不上雲").sum(),
-        "完成率%": round(g["狀態"].isin(["已上線", "已由替代表覆蓋"]).sum() / len(g) * 100, 1)
+        "完成率%": round((g["狀態"] == "已上線").sum() / len(g) * 100, 1)
     })
 ).reset_index()
 sjob_summary = sjob_summary.sort_values("完成率%", ascending=True)
@@ -287,7 +285,6 @@ if selected_detail_sjob != "-- 請選擇 --":
     def color_status(val):
         colors = {
             "已上線": "background-color: #738488; color: #ffffff",
-            "已由替代表覆蓋": "background-color: #5B9279; color: #ffffff",
             "待上線(缺口)": "background-color: #A6B6BA; color: #000000",
             "不上雲": "background-color: #D0D8DA; color: #000000",
             "未登錄在來源範圍": "background-color: #E1DDD7; color: #000000",
@@ -296,7 +293,7 @@ if selected_detail_sjob != "-- 請選擇 --":
         return colors.get(val, "")
 
     st.markdown("##### 完整來源表清單")
-    styled_df = sjob_data[["Table_name", "Multi_SRC_TBL", "來方資料歸屬", "來方子公司", "狀態", "替代表", "來源備註"]].style.map(
+    styled_df = sjob_data[["Table_name", "實際來源表", "Multi_SRC_TBL", "來方資料歸屬", "來方子公司", "狀態", "替代表", "來源備註"]].style.map(
         color_status, subset=["狀態"]
     )
     st.dataframe(styled_df, use_container_width=True, height=300)
