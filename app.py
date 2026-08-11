@@ -54,8 +54,14 @@ st.markdown("""
         user-select: text !important;
         -webkit-user-select: text !important;
     }
-    [data-testid="stDataFrame"] td, [data-testid="stDataFrame"] th {
+    [data-testid="stDataFrame"] [role="gridcell"],
+    [data-testid="stDataFrame"] [role="columnheader"] {
         text-align: left !important;
+        justify-content: flex-start !important;
+    }
+    [data-testid="stDataFrame"] [data-type="number"] {
+        text-align: left !important;
+        justify-content: flex-start !important;
     }
 </style>
 """, unsafe_allow_html=True)
