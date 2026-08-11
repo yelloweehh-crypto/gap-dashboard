@@ -54,6 +54,9 @@ st.markdown("""
         user-select: text !important;
         -webkit-user-select: text !important;
     }
+    [data-testid="stDataFrame"] td, [data-testid="stDataFrame"] th {
+        text-align: left !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
