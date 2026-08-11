@@ -298,16 +298,42 @@ df_assign_status["已上線數"] = df_assign_status["已上線數"].fillna(0).as
 df_assign_status["缺口數"] = df_assign_status["缺口數"].fillna(0).astype(int)
 df_assign_status["來源備齊"] = df_assign_status["完成率%"] == 100
 
-ready_sjobs = df_assign_status[df_assign_status["來源備齊"]]
+# 排程狀態分類
+is_online = df_assign_status["排程狀態"].astype(str).str.strip() == "已上線"
+online_sjobs = df_assign_status[is_online]
+not_online_sjobs = df_assign_status[~is_online]
 
-with st.expander(f"🔔 來源備齊通知（{len(ready_sjobs)} 支可上線）"):
-    if len(ready_sjobs) > 0:
-        for _, row in ready_sjobs.iterrows():
-            owner = row["Owner"] if pd.notna(row["Owner"]) and str(row["Owner"]).strip() != "" else ""
-            status = row["排程狀態"] if pd.notna(row["排程狀態"]) and str(row["排程狀態"]).strip() != "" else ""
-            st.markdown(f"- **{row['Sjob_Name']}**（Owner: {owner}）排程狀態: {status}")
-    else:
-        st.info("目前沒有排程來源完全備齊")
+# 來源備齊通知（排除已標記上線的）
+ready_sjobs = df_assign_status[(df_assign_status["來源備齊"]) & (~is_online)]
+
+notify_col1, notify_col2, notify_col3 = st.columns(3)
+
+with notify_col1:
+    with st.expander(f"已上線排程（{len(online_sjobs)} 支）"):
+        if len(online_sjobs) > 0:
+            for _, row in online_sjobs.iterrows():
+                owner = row["Owner"] if pd.notna(row["Owner"]) and str(row["Owner"]).strip() != "" else ""
+                st.markdown(f"- **{row['Sjob_Name']}**（{owner}）")
+        else:
+            st.info("目前沒有排程已上線")
+
+with notify_col2:
+    with st.expander(f"未上線排程（{len(not_online_sjobs)} 支）"):
+        if len(not_online_sjobs) > 0:
+            for _, row in not_online_sjobs.iterrows():
+                owner = row["Owner"] if pd.notna(row["Owner"]) and str(row["Owner"]).strip() != "" else ""
+                st.markdown(f"- **{row['Sjob_Name']}**（{owner}）")
+        else:
+            st.info("全部排程皆已上線")
+
+with notify_col3:
+    with st.expander(f"🔔 來源備齊可上線（{len(ready_sjobs)} 支）"):
+        if len(ready_sjobs) > 0:
+            for _, row in ready_sjobs.iterrows():
+                owner = row["Owner"] if pd.notna(row["Owner"]) and str(row["Owner"]).strip() != "" else ""
+                st.markdown(f"- **{row['Sjob_Name']}**（{owner}）")
+        else:
+            st.info("目前沒有排程來源備齊且未上線")
 
 st.markdown("##### 各排程分配總覽")
 
