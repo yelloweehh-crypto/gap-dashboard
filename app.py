@@ -294,30 +294,25 @@ st.subheader("排程分配狀態與上線通知")
 # 合併分配清單與完成率
 df_assign_status = df_assign.merge(sjob_summary[["Sjob_Name", "完成率%", "總來源數", "已上線數", "缺口數"]], on="Sjob_Name", how="left")
 df_assign_status["完成率%"] = df_assign_status["完成率%"].fillna(0)
+df_assign_status["已上線數"] = df_assign_status["已上線數"].fillna(0).astype(int)
+df_assign_status["缺口數"] = df_assign_status["缺口數"].fillna(0).astype(int)
 df_assign_status["來源備齊"] = df_assign_status["完成率%"] == 100
 
 ready_sjobs = df_assign_status[df_assign_status["來源備齊"]]
-not_ready_sjobs = df_assign_status[~df_assign_status["來源備齊"]]
 
-if len(ready_sjobs) > 0:
-    st.success(f"🔔 有 {len(ready_sjobs)} 支排程來源已備齊，可以測試上線！")
-    for _, row in ready_sjobs.iterrows():
-        owner = row["Owner"] if pd.notna(row["Owner"]) and str(row["Owner"]).strip() != "" else ""
-        status = row["排程狀態"] if pd.notna(row["排程狀態"]) and str(row["排程狀態"]).strip() != "" else ""
-        st.markdown(f"- **{row['Sjob_Name']}**（Owner: {owner}）排程狀態: {status}")
-else:
-    st.info("目前沒有排程來源完全備齊")
+with st.expander(f"🔔 來源備齊通知（{len(ready_sjobs)} 支可上線）"):
+    if len(ready_sjobs) > 0:
+        for _, row in ready_sjobs.iterrows():
+            owner = row["Owner"] if pd.notna(row["Owner"]) and str(row["Owner"]).strip() != "" else ""
+            status = row["排程狀態"] if pd.notna(row["排程狀態"]) and str(row["排程狀態"]).strip() != "" else ""
+            st.markdown(f"- **{row['Sjob_Name']}**（Owner: {owner}）排程狀態: {status}")
+    else:
+        st.info("目前沒有排程來源完全備齊")
 
 st.markdown("##### 各排程分配總覽")
 
-def color_ready(val):
-    if val is True:
-        return "background-color: #5B9279; color: #ffffff"
-    return ""
-
-assign_display = df_assign_status[["No", "Sjob_Name", "Owner", "排程狀態", "完成率%", "已上線數", "缺口數", "來源備齊"]].pipe(lambda df: df.set_axis(range(1, len(df) + 1)))
-styled_assign = assign_display.style.map(color_ready, subset=["來源備齊"])
-st.dataframe(styled_assign, use_container_width=True, height=min(500, max(100, 35 * len(assign_display) + 40)))
+assign_display = df_assign_status[["No", "Sjob_Name", "Owner", "排程狀態", "已上線數", "缺口數"]].pipe(lambda df: df.set_axis(range(1, len(df) + 1)))
+st.dataframe(assign_display, use_container_width=True, height=min(500, max(100, 35 * len(assign_display) + 40)))
 
 # --- 排程缺口詳情 ---
 st.markdown("---")
