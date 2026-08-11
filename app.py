@@ -346,7 +346,11 @@ with notify_col3:
 
 st.markdown("##### 各排程分配總覽")
 
-assign_display = df_assign_status[["No", "Sjob_Name", "Owner", "排程狀態", "已上線數", "缺口數"]].pipe(lambda df: df.set_axis(range(1, len(df) + 1)))
+assign_display = df_assign_status[["No", "Sjob_Name", "Owner", "排程狀態", "已上線數", "缺口數"]].copy()
+assign_display["已上線數"] = assign_display["已上線數"].astype(str)
+assign_display["缺口數"] = assign_display["缺口數"].astype(str)
+assign_display["No"] = assign_display["No"].astype(str)
+assign_display = assign_display.pipe(lambda df: df.set_axis(range(1, len(df) + 1)))
 st.dataframe(assign_display, use_container_width=True, height=min(500, max(100, 35 * len(assign_display) + 40)))
 
 # --- 排程缺口詳情 ---
